@@ -1,0 +1,36 @@
+# For a server that ALREADY has a reverse proxy (Caddy, nginx) on ports 80/443 and the calc-service
+# running in another Docker project. This starts only the app and joins that project's network, so
+# the existing proxy can reach the app and the app can reach the calc-service by name.
+#
+#   docker compose -f docker-compose.shared.yml up -d --build
+#
+# Needs a .env file next to this one with:
+#   SHARED_NETWORK    the other project's Docker network (docker network ls)
+#   CALC_SERVICE_URL  the calc-service's address on that network, e.g. http://calc-service:8000
+#   JWT_SECRET        long random text that signs the login cookie
+#
+# Then point the existing proxy at  pgo-wealth:4100  for the address customers will open.
+services:
+  pgo:
+    build: .
+    image: pgo-wealth:latest
+    container_name: pgo-wealth
+    restart: unless-stopped
+    # No published port: only the proxy on the shared network can reach the app.
+    expose:
+      - "4100"
+    environment:
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      CALC_SERVICE_URL: ${CALC_SERVICE_URL:?Set CALC_SERVICE_URL in .env}
+    volumes:
+      - pgo-data:/data
+    networks:
+      - shared
+
+networks:
+  shared:
+    external: true
+    name: ${SHARED_NETWORK:?Set SHARED_NETWORK in .env}
+
+volumes:
+  pgo-data:
