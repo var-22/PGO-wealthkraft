@@ -6,6 +6,7 @@ import cookieParser from "cookie-parser";
 import express from "express";
 import { authRouter } from "./routes/auth.js";
 import { portfolioRouter } from "./routes/portfolio.js";
+import { warmSample } from "./services/portfolio.js";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -56,4 +57,7 @@ app.use((err, req, res, next) => {
 });
 
 const port = Number(process.env.PORT) || 4100;
-app.listen(port, () => console.log(`pgo backend listening on http://localhost:${port}`));
+app.listen(port, () => {
+  console.log(`pgo backend listening on http://localhost:${port}`);
+  warmSample(); // today's figures for the sample portfolio, worked out before anyone asks
+});

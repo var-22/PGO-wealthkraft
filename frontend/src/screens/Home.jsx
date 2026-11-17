@@ -222,7 +222,10 @@ export default function Home({ user, portfolio, onRefresh, refreshing, onOpenFun
             <ChevronIcon width={18} height={18} />
           </button>
         )}
-        {stale && (
+        {portfolio.updating && (
+          <p className="updating" role="status"><i />Bringing in today's prices… figures shown are as of {date(portfolio.asOf, { day: "numeric", month: "short" })}.</p>
+        )}
+        {stale && !portfolio.updating && (
           <Notice kind="warn">
             Prices are from {date(portfolio.asOf)}. <button type="button" className="link-inline" onClick={onRefresh} disabled={refreshing}>{refreshing ? "Refreshing…" : "Refresh now"}</button>
           </Notice>

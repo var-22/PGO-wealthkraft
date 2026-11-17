@@ -81,6 +81,22 @@ export default function App() {
     if (user) load();
   }, [Boolean(user), load]);
 
+  // The server shows the last worked-out figures at once and brings today's in behind them; while it
+  // says "updating", the app quietly asks again and swaps the fresh figures in.
+  const updating = state.status === "ready" && Boolean(state.portfolio?.updating);
+  useEffect(() => {
+    if (!updating) return undefined;
+    const timer = setTimeout(async () => {
+      try {
+        const { portfolio } = await api.portfolio();
+        setState((s) => (s.status === "ready" ? { ...s, portfolio } : s));
+      } catch {
+        setState((s) => (s.status === "ready" && s.portfolio ? { ...s, portfolio: { ...s.portfolio, updating: false } } : s));
+      }
+    }, 15000);
+    return () => clearTimeout(timer);
+  }, [updating, state.portfolio]);
+
   // The phone's Back button closes the screen on top instead of leaving the app.
   useEffect(() => {
     const onPop = () => setOverlays((stack) => stack.slice(0, -1));

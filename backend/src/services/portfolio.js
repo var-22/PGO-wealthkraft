@@ -2,11 +2,13 @@
 // comparison, risk) come from the calc-service; the on-track verdicts come from the classifier
 // copied from the stock project. Nothing here is written by an AI model.
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import axios from "axios";
 import { classifyPortfolio, toDisplayStatus } from "../classifier/classify.js";
 import { categoryShortName } from "../classifier/fundSummary.js";
 import { sipPlan } from "./sipPlan.js";
 import { readAnalysis, readTransactions, saveAnalysis } from "./store.js";
+import { parseTransactionsCsv } from "./transactionsCsv.js";
 
 const CALC_SERVICE_URL = process.env.CALC_SERVICE_URL || "http://localhost:8000";
 
@@ -14,39 +16,98 @@ const CALC_SERVICE_URL = process.env.CALC_SERVICE_URL || "http://localhost:8000"
 const todayIst = () => new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10);
 const fingerprint = (transactions) => createHash("sha256").update(JSON.stringify(transactions)).digest("hex");
 
-const inFlight = new Map();
-const failed = new Map();
+// Results are kept under a "cache id": the customer's own id, or the one word "sample" for the
+// sample portfolio, which is the same for everybody and so is worked out once, not once per account.
+const SAMPLE_ID = "sample";
+const SAMPLE_CSV = new URL("../sample/sample-portfolio.csv", import.meta.url);
+// A result for the sample made ahead of time and shipped with the code, so the sample opens at once
+// even on a brand-new server. It is replaced by a fresh run in the background.
+const SAMPLE_BUNDLE = new URL("../sample/sample-analysis.json", import.meta.url);
+// After a failed background refresh, the older result keeps being shown and the next try waits.
+const RETRY_AFTER_MS = 10 * 60 * 1000;
 
-async function analysisFor(userId, transactions, force) {
-  const key = `${todayIst()}:${fingerprint(transactions)}`;
-  const cached = readAnalysis(userId);
-  // A run already under way for these same transactions is joined, never started twice (the app
-  // re-checks while it waits).
-  const running = inFlight.get(userId);
-  if (running?.key === key) return running.promise;
-  // A run that failed after the app stopped waiting is reported once, on the next check.
-  const failure = failed.get(userId);
-  if (failure) {
-    failed.delete(userId);
-    if (failure.key === key) throw failure.error;
-  }
-  if (!force && cached?.key === key) return cached;
+const inFlight = new Map(); // cache id -> { key, promise }
+const failed = new Map(); // cache id -> { key, error, at }
+
+function startRun(cacheId, key, transactions, stillWanted) {
   const promise = (async () => {
     try {
       const { data } = await axios.post(`${CALC_SERVICE_URL}/analyze`, { transactions, snapshot_rows: [] }, { timeout: 900000 });
       const record = { key, computedAt: new Date().toISOString(), result: data };
-      // Only kept if the customer hasn't replaced their transactions while this was running.
-      if (fingerprint(readTransactions(userId)?.transactions || []) === fingerprint(transactions)) saveAnalysis(userId, record);
+      // Only kept if the customer hasn't replaced their transactions while this was running, and
+      // never when it matched no fund at all (an older good result is worth more than that).
+      if (stillWanted() && data.schemes?.length) saveAnalysis(cacheId, record);
+      failed.delete(cacheId);
       return record;
     } catch (error) {
-      failed.set(userId, { key, error });
+      failed.set(cacheId, { key, error, at: Date.now() });
       throw error;
     } finally {
-      if (inFlight.get(userId)?.key === key) inFlight.delete(userId);
+      if (inFlight.get(cacheId)?.key === key) inFlight.delete(cacheId);
     }
   })();
-  inFlight.set(userId, { key, promise });
-  return promise;
+  const run = { key, promise };
+  inFlight.set(cacheId, run);
+  return run;
+}
+
+/** The newest stored result for exactly these transactions, from any day (null if there is none). */
+function lastGood(cacheId, print) {
+  const cached = readAnalysis(cacheId);
+  if (cached?.key?.endsWith(`:${print}`) && cached.result?.schemes?.length) return cached;
+  if (cacheId === SAMPLE_ID) {
+    try {
+      const bundled = JSON.parse(readFileSync(SAMPLE_BUNDLE, "utf8"));
+      if (bundled.key?.endsWith(`:${print}`)) return bundled;
+    } catch {
+      // no bundle, or the sample file has changed since it was made: fall through to a real run
+    }
+  }
+  return null;
+}
+
+/**
+ * { record, updating }. When an earlier result exists for the same transactions it is returned
+ * straight away and today's run carries on in the background (`updating` is then true); the app
+ * swaps in the fresh figures when they are ready. Only a first-ever run, or a forced refresh, waits.
+ */
+async function analysisFor(cacheId, transactions, { force = false, stillWanted = () => true } = {}) {
+  const print = fingerprint(transactions);
+  const key = `${todayIst()}:${print}`;
+  const good = lastGood(cacheId, print);
+  if (!force && good?.key === key) return { record: good, updating: false };
+
+  // A run already under way for these same transactions is joined, never started twice.
+  let running = inFlight.get(cacheId);
+  if (running?.key !== key) running = null;
+  const failure = failed.get(cacheId);
+
+  if (!force && good) {
+    const failedLately = failure?.key === key && Date.now() - failure.at < RETRY_AFTER_MS;
+    if (!running && !failedLately) running = startRun(cacheId, key, transactions, stillWanted);
+    running?.promise.catch(() => {}); // a failed refresh just leaves the older result in place
+    return { record: good, updating: Boolean(running) };
+  }
+
+  if (!running) {
+    // A first run that failed after the app stopped waiting is reported once, on the next check.
+    if (failure) {
+      failed.delete(cacheId);
+      if (failure.key === key && !force) throw failure.error;
+    }
+    running = startRun(cacheId, key, transactions, stillWanted);
+  }
+  return { record: await running.promise, updating: false, waited: true };
+}
+
+/** Works out today's figures for the sample in the background, so the first visitor never waits. */
+export function warmSample() {
+  try {
+    const { transactions } = parseTransactionsCsv(readFileSync(SAMPLE_CSV, "utf8"));
+    if (transactions.length) analysisFor(SAMPLE_ID, transactions).catch(() => {});
+  } catch {
+    // warming is a courtesy; the sample still loads on demand
+  }
 }
 
 const num = (n) => (typeof n === "number" && Number.isFinite(n) ? n : null);
@@ -178,13 +239,20 @@ export const PREPARING = Symbol("preparing");
 export async function portfolioFor(userId, { force = false } = {}) {
   const stored = readTransactions(userId);
   if (!stored?.transactions?.length) return null;
-  const pending = analysisFor(userId, stored.transactions, force);
+  const isSample = stored.source === "sample";
+  const cacheId = isSample ? SAMPLE_ID : userId;
+  const print = fingerprint(stored.transactions);
+  const pending = analysisFor(cacheId, stored.transactions, {
+    force,
+    stillWanted: () => isSample || fingerprint(readTransactions(userId)?.transactions || []) === print,
+  });
   pending.catch(() => {}); // a failure after we stopped waiting is reported on the next check
   let timer;
-  const record = await Promise.race([pending, new Promise((resolve) => { timer = setTimeout(() => resolve(PREPARING), WAIT_MS); })]);
+  const outcome = await Promise.race([pending, new Promise((resolve) => { timer = setTimeout(() => resolve(PREPARING), WAIT_MS); })]);
   clearTimeout(timer);
-  if (record === PREPARING) return PREPARING;
-  failed.delete(userId); // this request saw the outcome itself
+  if (outcome === PREPARING) return PREPARING;
+  if (outcome.waited) failed.delete(cacheId); // this request saw the outcome itself
+  const { record, updating } = outcome;
   if (!record.result.schemes?.length) {
     const error = new Error("NO_SCHEMES");
     error.rejected = record.result.rejected || [];
@@ -195,6 +263,8 @@ export async function portfolioFor(userId, { force = false } = {}) {
     source: stored.source,
     importedAt: stored.importedAt,
     transactionCount: stored.transactions.length,
+    // True while today's figures are still being worked out behind the ones shown.
+    updating,
     // The latest few transactions, for the home screen's "recent activity".
     recentTransactions: transactionsFor(userId).slice(0, 3),
   };
