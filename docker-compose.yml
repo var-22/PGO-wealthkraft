@@ -1,0 +1,26 @@
+# Start:  docker compose up -d --build      then open http://localhost:4100
+# Stop:   docker compose down               (customer data stays in the pgo-data volume)
+#
+# Settings can be put in a file named .env next to this one (see .env.docker.example).
+services:
+  pgo:
+    build: .
+    image: pgo-wealth:latest
+    container_name: pgo-wealth
+    restart: unless-stopped
+    ports:
+      - "${PGO_PORT:-4100}:4100"
+    environment:
+      # Signs the login cookie. Left empty, one is generated and kept in the data volume.
+      JWT_SECRET: ${JWT_SECRET:-}
+      # The Python calc-service from the stock project. The default reaches one running on this
+      # computer's port 8000 (it must listen on 0.0.0.0, not only 127.0.0.1).
+      CALC_SERVICE_URL: ${CALC_SERVICE_URL:-http://host.docker.internal:8000}
+    extra_hosts:
+      # Makes host.docker.internal work on Linux too (Docker Desktop already provides it).
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - pgo-data:/data
+
+volumes:
+  pgo-data:

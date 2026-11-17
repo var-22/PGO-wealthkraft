@@ -1,0 +1,6 @@
+# Caddy sits in front of the app on the server. It gets a free HTTPS certificate for PGO_DOMAIN by
+# itself and renews it; the app needs HTTPS to be installable on a phone.
+{$PGO_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy pgo:4100
+}

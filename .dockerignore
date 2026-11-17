@@ -1,0 +1,10 @@
+# Keep the build small, and never copy customer data or secrets into an image.
+**/node_modules
+frontend/dist
+backend/data
+**/.env
+.git
+.gitignore
+*.md
+docker-compose.yml
+Dockerfile

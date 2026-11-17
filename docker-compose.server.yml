@@ -1,0 +1,41 @@
+# For a server on the internet: the app plus Caddy, which serves it over HTTPS on ports 80 and 443.
+#
+#   docker compose -f docker-compose.server.yml up -d --build
+#
+# Needs a .env file next to this one with PGO_DOMAIN and JWT_SECRET (see .env.server.example).
+services:
+  pgo:
+    build: .
+    image: pgo-wealth:latest
+    restart: unless-stopped
+    # No published port: only Caddy can reach the app.
+    expose:
+      - "4100"
+    environment:
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      # The calc-service. The default reaches one running on this same server's port 8000.
+      CALC_SERVICE_URL: ${CALC_SERVICE_URL:-http://host.docker.internal:8000}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - pgo-data:/data
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - pgo
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      PGO_DOMAIN: ${PGO_DOMAIN:?Set PGO_DOMAIN in .env}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  pgo-data:
+  caddy-data:
+  caddy-config:
