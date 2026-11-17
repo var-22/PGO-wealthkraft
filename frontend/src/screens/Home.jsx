@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
 import { Donut, LineChart, Sparkline } from "../components/charts.jsx";
-import { ArrowIcon, BellIcon, CalendarIcon, ChevronIcon, ClockIcon, InsightsIcon, ScaleIcon, SearchIcon, ShieldIcon, StatusIcon, TrendIcon, WalletIcon } from "../components/icons.jsx";
+import { ArrowIcon, BellIcon, CalendarIcon, ChevronIcon, ClockIcon, InsightsIcon, NewsIcon, ScaleIcon, SearchIcon, ShieldIcon, StatusIcon, TrendIcon, WalletIcon } from "../components/icons.jsx";
 import { Notice } from "../components/ui.jsx";
+import { useNews } from "../news.js";
 import { readPref, writePref } from "../prefs.js";
+import { Headline, IndexStrip } from "./News.jsx";
 import { date, inr, inrShort, number, pct, plainPct, relativeDay, tone } from "../format.js";
 
 const RANGES = [
@@ -125,6 +127,10 @@ export default function Home({ user, portfolio, onRefresh, refreshing, onOpenFun
   const [installHidden, setInstallHidden] = useState(() => readPref("install-hidden", "0") === "1");
 
   const stale = daysSince(portfolio.asOf) > STALE_DAYS;
+
+  // Headlines about the customer's own funds first; market headlines fill in when there are few.
+  const news = useNews();
+  const topNews = news.data ? [...news.data.fundNews.slice(0, 3), ...news.data.marketNews].slice(0, 3) : [];
   const flagged = funds.filter((f) => f.status === "OFF TRACK" || f.status === "WATCH");
   const alerts = flagged.length + rejected.length;
   const openAlerts = () => {
@@ -339,6 +345,17 @@ export default function Home({ user, portfolio, onRefresh, refreshing, onOpenFun
                 );
               })}
             </ul>
+          </section>
+        )}
+
+        {news.data && (news.data.indices.length > 0 || topNews.length > 0) && (
+          <section className="card mini">
+            <header className="mini-head">
+              <h2><NewsIcon width={20} height={20} /> Market Today</h2>
+              <button type="button" className="link" onClick={() => onGo("news")}>All News <ArrowIcon width={14} height={14} /></button>
+            </header>
+            <IndexStrip indices={news.data.indices} />
+            {topNews.length > 0 && <div className="headlines headlines-flat">{topNews.map((item) => <Headline key={item.link} item={item} />)}</div>}
           </section>
         )}
 

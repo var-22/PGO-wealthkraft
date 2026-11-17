@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "./api.js";
-import { CloseIcon, FundsIcon, HomeIcon, InsightsIcon, ProfileIcon } from "./components/icons.jsx";
+import { CloseIcon, FundsIcon, HomeIcon, InsightsIcon, NewsIcon, ProfileIcon } from "./components/icons.jsx";
 import { Notice } from "./components/ui.jsx";
 import { setAmountsHidden } from "./format.js";
 import { useInstall } from "./install.js";
@@ -10,6 +10,8 @@ import FundDetail from "./screens/FundDetail.jsx";
 import Funds from "./screens/Funds.jsx";
 import Home from "./screens/Home.jsx";
 import Insights from "./screens/Insights.jsx";
+import News from "./screens/News.jsx";
+import { clearNews } from "./news.js";
 import Profile from "./screens/Profile.jsx";
 import Transactions from "./screens/Transactions.jsx";
 import Welcome from "./screens/Welcome.jsx";
@@ -17,6 +19,7 @@ import Welcome from "./screens/Welcome.jsx";
 const TABS = [
   { key: "home", label: "Home", Icon: HomeIcon },
   { key: "funds", label: "Portfolio", Icon: FundsIcon },
+  { key: "news", label: "News", Icon: NewsIcon },
   { key: "insights", label: "Insights", Icon: InsightsIcon },
   { key: "profile", label: "Profile", Icon: ProfileIcon },
 ];
@@ -63,6 +66,7 @@ export default function App() {
   }, [checkUser]);
 
   const load = useCallback(async () => {
+    clearNews(); // the funds held may have changed
     setState((s) => ({ ...s, status: "loading", error: null }));
     setSlow(false);
     const timer = setTimeout(() => setSlow(true), 2500);
@@ -140,6 +144,7 @@ export default function App() {
   };
 
   function signedOut() {
+    clearNews();
     setState({ status: "idle", portfolio: null, error: null });
     setOverlays([]);
     setTab("home");
@@ -231,6 +236,7 @@ export default function App() {
           />
         )}
         {tab === "funds" && <Funds portfolio={portfolio} filter={filter} onFilter={setFilter} onOpenFund={openFund} />}
+        {tab === "news" && <News />}
         {tab === "insights" && <Insights portfolio={portfolio} onOpenFund={openFund} />}
         {tab === "profile" && (
           <Profile

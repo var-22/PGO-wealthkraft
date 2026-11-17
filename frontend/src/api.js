@@ -41,6 +41,7 @@ export const api = {
   useSample: () => call("/api/portfolio/sample", { method: "POST" }),
   removePortfolio: () => call("/api/portfolio", { method: "DELETE" }),
   transactions: () => call("/api/portfolio/transactions"),
+  news: () => call("/api/news"),
   updateName: (name) => call("/api/auth/profile", { method: "PATCH", body: { name } }),
   changePassword: (currentPassword, newPassword) => call("/api/auth/password", { method: "POST", body: { currentPassword, newPassword } }),
   deleteAccount: (password) => call("/api/auth/account", { method: "DELETE", body: { password } }),

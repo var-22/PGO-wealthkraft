@@ -18,7 +18,8 @@ export const DownloadIcon = make(<><path d="M12 4v12" /><path d="M7 11l5 5 5-5" 
 export const ListIcon = make(<><path d="M8 6h12" /><path d="M8 12h12" /><path d="M8 18h12" /><path d="M4 6h.500" /><path d="M4 12h.500" /><path d="M4 18h.500" /></>);
 export const CalendarIcon = make(<><rect x="3.500" y="5" width="17" height="15.500" rx="2.500" /><path d="M3.500 10h17" /><path d="M8 3v4" /><path d="M16 3v4" /></>);
 export const CloseIcon = make(<><path d="M6 6l12 12" /><path d="M18 6L6 18" /></>);
-export const BellIcon = make(<><path d="M6 16.500V11a6 6 0 0 1 12 0v5.500l1.500 2h-15z" /><path d="M10 21a2.200 2.200 0 0 0 4 0" /></>);
+export const NewsIcon = make(<><path d="M5 5h11v13.500a1.500 1.500 0 0 0 3 0V9h-3" /><path d="M5 5v13.500A1.500 1.500 0 0 0 6.500 20h11" /><path d="M8 9h5" /><path d="M8 12.500h5" /><path d="M8 16h3" /></>);
+export const BellIcon =make(<><path d="M6 16.500V11a6 6 0 0 1 12 0v5.500l1.500 2h-15z" /><path d="M10 21a2.200 2.200 0 0 0 4 0" /></>);
 export const WalletIcon = make(<><path d="M4 7.500A2.500 2.500 0 0 1 6.500 5H17v3" /><rect x="4" y="8" width="16.500" height="11" rx="2.500" /><path d="M16.500 13.500h.500" /></>);
 export const ShieldIcon = make(<><path d="M12 3l7.500 2.800v5.700c0 4.300-3 7.800-7.500 9.500-4.500-1.700-7.500-5.200-7.500-9.500V5.800z" /><path d="M8.800 12l2.300 2.300 4.200-4.400" /></>);
 export const ScaleIcon = make(<><path d="M12 4v16" /><path d="M7.500 20h9" /><path d="M5 7h14" /><path d="M5 7l-2.500 6a2.700 2.700 0 0 0 5 0z" /><path d="M19 7l-2.500 6a2.700 2.700 0 0 0 5 0z" /></>);

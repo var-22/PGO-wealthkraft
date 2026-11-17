@@ -654,14 +654,36 @@ button:disabled { opacity: 0.6; cursor: default; }
 .skeleton-tall { height: 210px; }
 @keyframes shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
 
+/* ---- news ---- */
+.indices { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 8px; }
+.index { display: grid; gap: 1px; min-width: 0; padding: 12px 10px; border-radius: 16px; background: var(--surface); box-shadow: var(--shadow), inset 0 0 0 1px var(--line); color: var(--ink); }
+.index span { font-size: 12px; font-weight: 600; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.index b { font-size: 15.5px; font-weight: 750; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.index small { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.index.up small { color: var(--up); }
+.index.down small { color: var(--down); }
+.mini .indices { margin-bottom: 4px; }
+.mini .index { background: var(--surface-2); box-shadow: none; }
+.headlines { display: grid; gap: 10px; animation: rise 0.3s ease both; }
+.headline { display: grid; gap: 5px; justify-items: start; padding: 14px 16px; border-radius: 18px; background: var(--surface); box-shadow: var(--shadow), inset 0 0 0 1px var(--line); color: var(--ink); text-decoration: none; transition: transform 0.15s; }
+.headline:active { transform: scale(0.98); }
+.headline b { font-size: 15px; font-weight: 650; line-height: 1.35; }
+.headline-tag { max-width: 100%; padding: 3px 9px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); font-size: 11.5px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.headline-tag.fund { background: color-mix(in srgb, var(--brand) 12%, transparent); color: var(--brand); }
+.headline-meta { font-size: 12.5px; color: var(--muted); }
+.headlines-flat { gap: 0; margin-top: 6px; }
+.headlines-flat .headline { padding: 12px 0; border-radius: 0; background: none; box-shadow: none; border-top: 1px solid var(--line); }
+.headlines-flat .headline:last-child { padding-bottom: 2px; }
+.headlines-flat .headline b { font-size: 14px; }
+.page-head .icon-btn { margin: 0 -8px 0 0; color: var(--ink-2); align-self: center; }
 /* ---- tab bar: flat, with a line under the current tab ---- */
 .tabbar {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); z-index: 20;
   width: min(480px, 100%); height: calc(var(--tabbar-h) + var(--safe-b)); padding: 0 8px var(--safe-b);
-  display: grid; grid-template-columns: repeat(4, 1fr);
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
   background: var(--surface); box-shadow: 0 -1px 0 var(--line), 0 -10px 30px -18px rgba(14, 23, 38, 0.25);
 }
-.tabbar button { position: relative; display: grid; justify-items: center; align-content: center; gap: 3px; color: var(--muted); font-size: 12.5px; font-weight: 600; transition: color 0.2s; }
+.tabbar button { position: relative; display: grid; justify-items: center; align-content: center; gap: 3px; min-width: 0; color: var(--muted); font-size: 12px; font-weight: 600; transition: color 0.2s; }
 .tabbar button::after { content: ""; position: absolute; left: 22%; right: 22%; bottom: 0; height: 3px; border-radius: 3px 3px 0 0; background: var(--brand); transform: scaleX(0); transition: transform 0.25s cubic-bezier(0.3, 1.3, 0.6, 1); }
 .tabbar button.on { color: var(--brand); }
 .tabbar button.on::after { transform: scaleX(1); }

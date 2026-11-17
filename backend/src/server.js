@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import cookieParser from "cookie-parser";
 import express from "express";
 import { authRouter } from "./routes/auth.js";
+import { newsRouter } from "./routes/news.js";
 import { portfolioRouter } from "./routes/portfolio.js";
 import { warmSample } from "./services/portfolio.js";
 
@@ -33,6 +34,7 @@ app.use(cookieParser());
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 app.use(authRouter);
 app.use(portfolioRouter);
+app.use(newsRouter);
 
 // In production the built app is served from here too, so the browser only ever talks to one origin.
 const dist = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "frontend", "dist");

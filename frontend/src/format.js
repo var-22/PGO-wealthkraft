@@ -71,7 +71,21 @@ export function date(iso, options = { day: "numeric", month: "short", year: "num
   return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString("en-IN", { ...options, timeZone: "UTC" });
 }
 
-export const tone = (n) => (!isNum(n) || n === 0 ? "" : n > 0 ? "up" : "down");
+/** "just now", "25 min ago", "3 hours ago", "2 days ago", then the date. */
+export function timeAgo(iso) {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const minutes = Math.round((Date.now() - then) / 60000);
+  if (minutes < 2) return "just now";
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
+  const days = Math.round(hours / 24);
+  if (days < 7) return `${days} ${days === 1 ? "day" : "days"} ago`;
+  return date(new Date(then).toISOString());
+}
+
+export const tone =(n) => (!isNum(n) || n === 0 ? "" : n > 0 ? "up" : "down");
 
 export const STATUSES = {
   "ON TRACK": { key: "on", label: "On track", blurb: "Doing what it should. Nothing to act on." },
